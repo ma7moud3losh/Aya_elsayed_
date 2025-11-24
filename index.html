@@ -139,9 +139,19 @@ window.removeFromCart = function (index) {
       if(items.length===0) return alert('السلة فارغة');
       const total = items.reduce((s,i)=>s+i.price*(i.quantity||1),0);
       // write order to supabase
-      const { data, error } = await supabase.from('orders').insert([{
-        customer_name: name, phone, address, items: items, total
-      }]);
+      const { data, error } = await supabase
+  .from("orders")
+  .insert([
+    {
+      customer_name: name,
+      phone: phone,
+      address: address,
+      items: items, // بدون JSON.stringify
+      total: total,
+      status: "new"
+    }
+  ]);
+
       if(error){ console.error(error); checkoutMsg.textContent = "حدث خطأ أثناء إرسال الطلب"; return; }
       // clear cart
       localStorage.removeItem('cart');
