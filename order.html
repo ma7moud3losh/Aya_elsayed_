@@ -1,167 +1,72 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-<meta charset="utf-8" />
-<title>السلة — AYA</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-
-<style>
-body{
-  font-family:'Tajawal';
-  background:#faf7fb;
-  margin:0;
-  padding:20px;
-  color:#333;
-}
-h2{text-align:center;margin-bottom:20px}
-
-.cart-item{
-  display:flex;
-  background:white;
-  padding:12px;
-  border-radius:12px;
-  margin-bottom:12px;
-  gap:12px;
-  box-shadow:0 3px 12px rgba(0,0,0,0.08);
-}
-.cart-item img{
-  width:100px;height:100px;border-radius:10px;object-fit:cover;
-}
-.info{flex:1}
-.qty{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  margin:8px 0;
-}
-.qty button{
-  width:28px;height:28px;
-  font-weight:bold;
-  border:none;
-  background:#ff4f9d;
-  color:#fff;
-  border-radius:6px;
-  cursor:pointer;
-}
-.remove-btn{
-  background:#ddd;
-  border:none;
-  padding:6px 12px;
-  border-radius:6px;
-  cursor:pointer;
-}
-.total-box{
-  margin-top:20px;
-  font-size:20px;
-  font-weight:bold;
-  text-align:center;
-}
-.checkout-btn{
-  width:100%;
-  background:#ff4f9d;
-  padding:12px;
-  border:none;
-  margin-top:15px;
-  color:white;
-  border-radius:10px;
-  font-size:17px;
-  cursor:pointer;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إتمام الطلب</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+<body dir="rtl">
+  <header>
+    <h1>إتمام الطلب</h1>
+  </header>
 
-<body>
+  <main class="order-form">
+    <form id="orderForm">
+      <input type="text" id="name" placeholder="الاسم الكامل" required>
+      <input type="text" id="phone" placeholder="رقم الهاتف" required>
+      <input type="text" id="address" placeholder="العنوان بالتفصيل" required>
+      <button type="submit">تأكيد الطلب ✅</button>
+    </form>
+    <p id="msg"></p>
+  </main>
 
-<h2>🛒 السلة</h2>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-<div id="cart-list"></div>
+  // إعداد Firebase
+    const firebaseConfig = {
+  apiKey: "AIzaSyAvTOt8ISoXqxmuuOJ0ca9XGUHmbLriEdE",
+  authDomain: "aya-elsayed-shop.firebaseapp.com",
+  projectId: "aya-elsayed-shop",
+  storageBucket: "aya-elsayed-shop.firebasestorage.app",
+  messagingSenderId: "309450668221",
+  appId: "1:309450668221:web:e83c5fd6be2071e5a55fd4",
+  measurementId: "G-GD8NB6884L"
+  };
 
-<div class="total-box">الإجمالي: <span id="total">0</span> جنيه</div>
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-<button class="checkout-btn" onclick="goCheckout()">إتمام الطلب</button>
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-<script>
+  document.getElementById("orderForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-// ===============================
-// تحميل السلة
-// ===============================
-function loadCart(){
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  const box = document.getElementById("cart-list");
-  let total = 0;
+    if (cart.length === 0) return alert("السلة فارغة!");
 
-  if(cart.length === 0){
-    box.innerHTML = "<p style='text-align:center;color:#777'>السلة فارغة</p>";
-    document.getElementById("total").innerHTML = 0;
-    return;
-  }
+    const name = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const address = document.getElementById("address").value.trim();
 
-  box.innerHTML = "";
-  cart.forEach((item, i)=>{
+    try {
+      await addDoc(collection(db, "orders"), {
+        name,
+        phone,
+        address,
+        items: cart,
+        createdAt: new Date().toISOString()
+      });
 
-    // تأكد أن السعر رقم وليس نص
-    const price = Number(item.price) || 0;
-    total += price * item.qty;
-
-    box.innerHTML += `
-      <div class="cart-item">
-        <img src="${item.image}">
-        <div class="info">
-          <h4>${item.name}</h4>
-          <p>${price} جنيه</p>
-
-          <div class="qty">
-            <button onclick="changeQty(${i}, 1)">+</button>
-            <span style="font-size:18px">${item.qty}</span>
-            <button onclick="changeQty(${i}, -1)">-</button>
-          </div>
-
-          <button class="remove-btn" onclick="removeItem(${i})">حذف</button>
-        </div>
-      </div>
-    `;
+      localStorage.removeItem("cart");
+      document.getElementById("msg").textContent = "✅ تم إرسال طلبك بنجاح!";
+      document.getElementById("orderForm").reset();
+    } catch (error) {
+      console.error("❌ خطأ أثناء إرسال الطلب:", error);
+      alert("حدث خطأ أثناء إرسال الطلب، حاول مرة أخرى!");
+    }
   });
-
-  document.getElementById("total").innerHTML = total;
-}
-
-// ===============================
-// زيادة/نقص الكمية
-// ===============================
-function changeQty(i, change){
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  cart[i].qty += change;
-
-  if(cart[i].qty <= 0) cart.splice(i,1);
-
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadCart();
-}
-
-// ===============================
-// حذف عنصر
-// ===============================
-function removeItem(i){
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  cart.splice(i,1);
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadCart();
-}
-
-// ===============================
-// الانتقال لصفحة إتمام الطلب
-// ===============================
-function goCheckout(){
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  if(cart.length === 0){
-    alert("السلة فارغة!");
-    return;
-  }
-  location.href = "order.html";
-}
-
-loadCart();
 </script>
 
 </body>

@@ -1,167 +1,134 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-<meta charset="utf-8" />
-<title>السلة — AYA</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-
-<style>
-body{
-  font-family:'Tajawal';
-  background:#faf7fb;
-  margin:0;
-  padding:20px;
-  color:#333;
-}
-h2{text-align:center;margin-bottom:20px}
-
-.cart-item{
-  display:flex;
-  background:white;
-  padding:12px;
-  border-radius:12px;
-  margin-bottom:12px;
-  gap:12px;
-  box-shadow:0 3px 12px rgba(0,0,0,0.08);
-}
-.cart-item img{
-  width:100px;height:100px;border-radius:10px;object-fit:cover;
-}
-.info{flex:1}
-.qty{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  margin:8px 0;
-}
-.qty button{
-  width:28px;height:28px;
-  font-weight:bold;
-  border:none;
-  background:#ff4f9d;
-  color:#fff;
-  border-radius:6px;
-  cursor:pointer;
-}
-.remove-btn{
-  background:#ddd;
-  border:none;
-  padding:6px 12px;
-  border-radius:6px;
-  cursor:pointer;
-}
-.total-box{
-  margin-top:20px;
-  font-size:20px;
-  font-weight:bold;
-  text-align:center;
-}
-.checkout-btn{
-  width:100%;
-  background:#ff4f9d;
-  padding:12px;
-  border:none;
-  margin-top:15px;
-  color:white;
-  border-radius:10px;
-  font-size:17px;
-  cursor:pointer;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سلة المشتريات - Aya Elsayed Shop</title>
+  <style>
+    body { font-family: 'Tajawal', sans-serif; background: #fff5f8; direction: rtl; text-align: right; padding: 20px; }
+    header, footer { text-align: center; background: #e91e63; color: white; padding: 10px; border-radius: 12px; }
+    main { margin-top: 20px; }
+    .cart-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: #fff;
+      border: 1px solid #f3a3bd;
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .cart-item img { width: 80px; border-radius: 8px; }
+    .cart-item input { width: 60px; text-align: center; border: 1px solid #ccc; border-radius: 6px; }
+    #totalPrice { font-weight: bold; color: #e91e63; font-size: 1.2em; margin: 15px 0; }
+    form input, form textarea, form button {
+      width: 100%; margin: 5px 0; padding: 10px;
+      border-radius: 8px; border: 1px solid #ccc;
+    }
+    form button {
+      background: #e91e63; color: #fff; border: none; cursor: pointer;
+      transition: 0.3s;
+    }
+    form button:hover { background: #c2185b; }
+    #msg { text-align: center; color: green; margin-top: 10px; font-weight: bold; }
+  </style>
 </head>
-
 <body>
+  <header>
+    <h1> Aya Elsayed Stor</h1>
+    <nav><a href="index.html" style="color:white;">🏠 الصفحة الرئيسية</a></nav>
+  </header>
 
-<h2>🛒 السلة</h2>
+  <main>
+    <h2>🛍️ سلة المشتريات</h2>
+    <div id="cartItems">جاري تحميل السلة...</div>
+    <h3 id="totalPrice"></h3>
 
-<div id="cart-list"></div>
+    <h2>📦 بيانات الطلب</h2>
+    <form id="orderForm">
+      <input type="text" id="name" placeholder="الاسم بالكامل" required>
+      <input type="tel" id="phone" placeholder="رقم الهاتف" required>
+      <textarea id="address" placeholder="العنوان الكامل" required></textarea>
+      <button type="submit">إرسال الطلب ✅</button>
+    </form>
+    <p id="msg"></p>
+  </main>
 
-<div class="total-box">الإجمالي: <span id="total">0</span> جنيه</div>
+  <footer>
+    <p>© 2025 Aya Elsayed Shop - جميع الحقوق محفوظة</p>
+  </footer>
 
-<button class="checkout-btn" onclick="goCheckout()">إتمام الطلب</button>
+  <script type="module">
+  import { db } from './firebase.js';
+  import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-<script>
+  const orderForm = document.getElementById("orderForm");
+  const cartItemsDiv = document.getElementById("cartItems");
+  const totalPriceEl = document.getElementById("totalPrice");
 
-// ===============================
-// تحميل السلة
-// ===============================
-function loadCart(){
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  const box = document.getElementById("cart-list");
-  let total = 0;
+  // 🛍️ عرض السلة في الصفحة
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-  if(cart.length === 0){
-    box.innerHTML = "<p style='text-align:center;color:#777'>السلة فارغة</p>";
-    document.getElementById("total").innerHTML = 0;
-    return;
-  }
-
-  box.innerHTML = "";
-  cart.forEach((item, i)=>{
-
-    // تأكد أن السعر رقم وليس نص
-    const price = Number(item.price) || 0;
-    total += price * item.qty;
-
-    box.innerHTML += `
-      <div class="cart-item">
-        <img src="${item.image}">
-        <div class="info">
-          <h4>${item.name}</h4>
-          <p>${price} جنيه</p>
-
-          <div class="qty">
-            <button onclick="changeQty(${i}, 1)">+</button>
-            <span style="font-size:18px">${item.qty}</span>
-            <button onclick="changeQty(${i}, -1)">-</button>
-          </div>
-
-          <button class="remove-btn" onclick="removeItem(${i})">حذف</button>
+  if (cart.length === 0) {
+    cartItemsDiv.innerHTML = "<p>السلة فارغة 🛒</p>";
+  } else {
+    let total = 0;
+    cartItemsDiv.innerHTML = cart.map(item => {
+      total += parseFloat(item.price) || 0;
+      return `
+        <div style="border:1px solid #f8c6d8; border-radius:10px; padding:10px; margin:10px 0; background:#fff;">
+          <img src="${item.image}" alt="${item.name}" width="80">
+          <p><strong>${item.name}</strong></p>
+          <p>السعر: ${item.price} جنيه</p>
         </div>
-      </div>
-    `;
-  });
-
-  document.getElementById("total").innerHTML = total;
-}
-
-// ===============================
-// زيادة/نقص الكمية
-// ===============================
-function changeQty(i, change){
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  cart[i].qty += change;
-
-  if(cart[i].qty <= 0) cart.splice(i,1);
-
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadCart();
-}
-
-// ===============================
-// حذف عنصر
-// ===============================
-function removeItem(i){
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  cart.splice(i,1);
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadCart();
-}
-
-// ===============================
-// الانتقال لصفحة إتمام الطلب
-// ===============================
-function goCheckout(){
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  if(cart.length === 0){
-    alert("السلة فارغة!");
-    return;
+      `;
+    }).join("");
+    totalPriceEl.textContent = `💰 الإجمالي: ${total} جنيه`;
   }
-  location.href = "order.html";
-}
 
-loadCart();
+  // 📨 إرسال الطلب
+  orderForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const address = document.getElementById("address").value.trim();
+
+    if (cart.length === 0) {
+      alert("⚠️ السلة فارغة!");
+      return;
+    }
+
+    const formattedCart = cart.map(item => ({
+      name: item.name || "منتج بدون اسم",
+      price: item.price || "0",
+      image: item.image || "",
+      quantity: item.quantity ? parseInt(item.quantity) : 1
+    }));
+
+    const total = formattedCart.reduce((sum, item) => sum + (parseFloat(item.price) * (item.quantity || 1)), 0);
+
+    try {
+      await addDoc(collection(db, "orders"), {
+        name,
+        phone,
+        address,
+        items: formattedCart,
+        total,
+        date: new Date().toLocaleString("ar-EG")
+      });
+
+      localStorage.removeItem("cart");
+      orderForm.reset();
+      document.getElementById("msg").textContent = "✅ تم إرسال طلبك بنجاح!";
+      totalPriceEl.textContent = "";
+      cartItemsDiv.innerHTML = "<p>تم إرسال الطلب 🩷</p>";
+    } catch (error) {
+      console.error("❌ خطأ أثناء إرسال الطلب:", error);
+      alert("حدث خطأ أثناء إرسال الطلب، حاول مرة أخرى!");
+    }
+  });
 </script>
 
 </body>

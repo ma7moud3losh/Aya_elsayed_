@@ -1,191 +1,158 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>AYA ELSAYED</title>
-
-<!-- خط Tajawal -->
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-
-<!-- مكتبة Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-:root{
-  --pink:#FF4F9D;
-  --pink-2:#FF8AC7;
-  --bg:#F7F7F7;
-  --card-shadow: 0 10px 30px rgba(0,0,0,0.06);
-}
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:'Tajawal',sans-serif;
-  background:var(--bg);
-  color:#333;
-}
-.header{
-  background:white;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:14px 20px;
-  box-shadow:0 2px 10px rgba(0,0,0,0.06);
-  position:sticky;
-  top:0;
-  z-index:10;
-}
-.logo{font-weight:700;color:var(--pink);font-size:20px}
-.nav a{margin-left:18px;text-decoration:none;color:#333;font-weight:500;cursor:pointer;}
-.container{max-width:1100px;margin:30px auto;padding:0 16px}
-
-/* hero */
-.hero{
-  background: linear-gradient(180deg, rgba(255,140,180,0.08), rgba(255,140,180,0.03));
-  border-radius:18px;
-  padding:28px;
-  display:flex;
-  gap:20px;
-  align-items:center;
-  box-shadow:var(--card-shadow);
-}
-.hero .left{flex:1}
-.hero h1{margin:0;font-size:28px;color:#222}
-.hero p{margin-top:8px;color:#666}
-.hero .cta{margin-top:12px;padding:10px 16px;background:var(--pink);color:white;border:none;border-radius:12px;cursor:pointer;font-weight:600}
-
-/* products grid */
-.products{
-  margin-top:26px;
-  display:grid;
-  grid-template-columns: repeat(auto-fill,minmax(240px,1fr));
-  gap:20px;
-}
-.card{
-  background:white;border-radius:16px;padding:14px;box-shadow:var(--card-shadow);
-  transition:transform .18s, box-shadow .18s;
-  display:flex;flex-direction:column;gap:8px;
-}
-.card:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,0.08)}
-.card img{width:100%;height:190px;object-fit:cover;border-radius:10px}
-.card h3{margin:0;font-size:18px}
-.price{color:var(--pink);font-weight:700;font-size:18px}
-.card .actions{margin-top:auto;display:flex;gap:8px}
-.btn{
-  padding:9px 12px;border-radius:12px;border:none;cursor:pointer;font-weight:600;
-}
-.btn-buy{background:var(--pink);color:white;}
-.btn-add{background:transparent;border:1px solid #eee;color:#333}
-
-.footer{margin:40px 0;text-align:center;color:#777}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Aya Elsayed — متجر مستحضرات التجميل</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <header class="header">
+    <img src="logo.jpg" class="imglogo">
+    <h1>Aya Elsayed</h1>
+  </header>
 
-<header class="header">
-  <div style="display:flex;align-items:center;gap:12px">
-    <div class="logo">AYA ELSAYED</div>
-    <div style="color:#999;font-size:14px"> أدوات تجميل</div>
+  <div class="container">
+    <h2>منتجاتنا المميزة</h2>
+    <div id="products" class="grid">جاري التحميل...</div>
   </div>
 
-  <nav class="nav">
-    <a class="cart-btn" href="cart.html">🛒 السلة</a>
-  </nav>
-</header>
+  <button id="openCart" class="fab">🛍️ السلة (<span id="cartCount">0</span>)</button>
 
-<main class="container">
-
-  <section class="hero">
-    <div class="left">
-      <h1>منتجاتنا المميزة</h1>
-      <p>اكتشفي أجمل منتجات التجميل — تسوّقي الآن بكل سهولة.</p>
+  <!-- checkout modal -->
+  <div id="backdrop" class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>إنهاء الطلب</h3>
+      <div id="cartDetails"></div>
+      <form id="checkoutForm">
+        <input required placeholder="الاسم الكامل" id="c_name">
+        <input required placeholder="رقم الهاتف" id="c_phone">
+        <textarea required placeholder="العنوان الكامل" id="c_address"></textarea>
+        <button class="btn" type="submit">أرسل الطلب</button>
+        <button type="button" class="btn ghost" id="closeModal">إلغاء</button>
+      </form>
+      <p id="checkoutMsg"></p>
     </div>
-
-    <div style="width:220px">
-      <img src="logo.jpg" style="width:100%;border-radius:12px;box-shadow:var(--card-shadow)" alt="beauty">
-    </div>
-  </section>
-
-  <div id="products" class="products">
-    <!-- المنتجات هنا -->
   </div>
 
-  <div class="footer">© جميع الحقوق محفوظة — AYA ELSAYED</div>
+  <script type="module">
+    import { supabase } from "./supabase.js";
 
-</main>
+    // util cart stored in localStorage
+    const productsEl = document.getElementById('products');
+    const cartCount = document.getElementById('cartCount');
+    const openCart = document.getElementById('openCart');
+    const backdrop = document.getElementById('backdrop');
+    const cartDetails = document.getElementById('cartDetails');
+    const checkoutForm = document.getElementById('checkoutForm');
+    const closeModal = document.getElementById('closeModal');
+    const checkoutMsg = document.getElementById('checkoutMsg');
 
-<script>
-// ===== Supabase Connect =====
-const supabaseUrl = "https://qccpddjnozehorhleegz.supabase.co";
-const supabaseKey = "sb_publishable_rSdFTm7TUh-HDRLKacdZxw_BpQOTeIr";
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    function getCart(){ return JSON.parse(localStorage.getItem('cart')||'[]');}
+    function setCart(c){ localStorage.setItem('cart', JSON.stringify(c)); updateCartCount(); }
+    function updateCartCount(){ cartCount.textContent = getCart().reduce((s,i)=>s+(i.quantity||1),0); }
 
-// ===== تحميل المنتجات =====
-async function loadProducts(){
-  const box = document.getElementById("products");
-  box.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:30px;color:#777">جاري تحميل المنتجات...</div>`;
-
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending:false });
-
-  if(error){
-    box.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#c00;padding:20px">خطأ في تحميل المنتجات</div>`;
-    return;
-  }
-
-  if(!data || data.length === 0){
-    box.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:#777">لا توجد منتجات</div>`;
-    return;
-  }
-
-  box.innerHTML = "";
-
-  data.forEach(p => {
-    box.innerHTML += `
-      <div class="card">
-        <img src="${p.image}" alt="${p.name}">
-        <h3>${p.name}</h3>
-        <p class="price">${p.price} جنيه</p>
-        <p style="color:#666;font-size:14px;min-height:40px">${p.description || ''}</p>
-
-        <div class="actions">
-          <button class="btn btn-buy"
-            onclick="addToCart('${p.id}', '${p.name}', ${Number(p.price)}, '${p.image}')">
-            أضف للسلة
-          </button>
+    // load products from supabase
+    async function loadProducts(){
+      const { data, error } = await supabase.from('products').select('*').order('created_at',{ascending:false});
+      if(error){ productsEl.innerHTML = "<p>حدث خطأ في تحميل المنتجات</p>"; console.error(error); return;}
+      if(!data || data.length===0){ productsEl.innerHTML = "<p>لا توجد منتجات بعد</p>"; return;}
+      productsEl.innerHTML = data.map(p => `
+        <div class="card">
+          <img src="${p.image_url||'assets/placeholder.jpg'}" alt="${p.title}">
+          <h3>${p.title}</h3>
+          <p>${p.description || ''}</p>
+          <p class="price">${p.price} جنيه</p>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" data-add='${p.id}'>أضف للسلة</button>
+            <a class="btn ghost" href="product.html?id=${p.id}">عرض</a>
+          </div>
         </div>
-      </div>
-    `;
-  });
-}
+      `).join('');
+      // attach events
+      document.querySelectorAll('[data-add]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const id = btn.getAttribute('data-add');
+          const product = data.find(x=>x.id===id);
+          addToCart(product);
+        });
+      });
+    }
 
-// ===== إضافة للسلة =====
-function addToCart(id, name, price, image){
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    function addToCart(product){
+      const cart = getCart();
+      const found = cart.find(i=>i.id===product.id);
+      if(found){ found.quantity = (found.quantity||1)+1; }
+      else cart.push({ id: product.id, title: product.title, price: product.price, image: product.image_url, quantity: 1});
+      setCart(cart);
+      alert('تمت الإضافة إلى السلة');
+    }
 
-  const exist = cart.findIndex(i => i.id === id);
-
-  if(exist !== -1){
-    cart[exist].qty++;
-  } else {
-    cart.push({
-      id,
-      name,
-      price: Number(price),
-      image,
-      qty: 1
-    });
+    openCart.addEventListener("click", () => {
+  const items = getCart();
+  if (items.length === 0) {
+    alert("السلة فارغة");
+    return;
   }
 
-  localStorage.setItem("cart", JSON.stringify(cart));
-  alert("تمت إضافة المنتج إلى السلة ❤️");
-}
+  cartDetails.innerHTML = items
+    .map(
+      (i, index) => `
+      <div class="cart-row">
+        <img src="${i.image || "assets/placeholder.jpg"}" class="cart-img">
 
-window.onload = loadProducts;
-</script>
+        <div class="cart-info">
+          <strong>${i.title}</strong><br>
+          ${i.quantity} × ${i.price} جنيه
+        </div>
 
+        <button class="remove-btn" onclick="removeFromCart(${index})">❌</button>
+      </div>
+    `
+    )
+    .join("") +
+    `
+    <hr>
+    <p><strong>الإجمالي:</strong>
+    ${items.reduce((s, i) => s + i.price * (i.quantity || 1), 0)} جنيه</p>
+  `;
+
+  backdrop.style.display = "flex";
+});
+window.removeFromCart = function (index) {
+  let cart = getCart();
+  cart.splice(index, 1); // حذف المنتج
+  setCart(cart);
+
+  // إعادة فتح السلة بعد الحذف وتحديث المحتوى
+  openCart.click();
+};
+
+    closeModal.addEventListener('click', ()=> backdrop.style.display = 'none');
+
+    checkoutForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const name = document.getElementById('c_name').value.trim();
+      const phone = document.getElementById('c_phone').value.trim();
+      const address = document.getElementById('c_address').value.trim();
+      const items = getCart();
+      if(items.length===0) return alert('السلة فارغة');
+      const total = items.reduce((s,i)=>s+i.price*(i.quantity||1),0);
+      // write order to supabase
+      const { data, error } = await supabase.from('orders').insert([{
+        customer_name: name, phone, address, items: JSON.stringify(items), total
+      }]);
+      if(error){ console.error(error); checkoutMsg.textContent = "حدث خطأ أثناء إرسال الطلب"; return; }
+      // clear cart
+      localStorage.removeItem('cart');
+      updateCartCount();
+      checkoutMsg.textContent = "✅ تم ارسال الطلب، شكراً لك!";
+      setTimeout(()=>{ backdrop.style.display='none'; checkoutMsg.textContent=''; checkoutForm.reset(); }, 1600);
+    });
+
+    // init
+    updateCartCount();
+    loadProducts();
+  </script>
 </body>
 </html>
