@@ -1,127 +1,209 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>الطلبات</title>
-
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-  <style>
-    body {
-      font-family: "Tajawal", sans-serif;
-      background: #f7f7f7;
-      padding: 20px;
-    }
-    .order-card {
-      background: #fff;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #0001;
-    }
-    select, button {
-      padding: 8px 10px;
-      margin: 5px;
-      border-radius: 6px;
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>لوحة الأدمن — Aya Elsayed</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+  <header class="header">
+    <h1>لوحة الأدمن — Aya Elsayed</h1>
+    <div><a href="index.html" style="color:#fff">عرض المتجر</a></div>
+  </header>
 
-  <h2>📦 لوحة إدارة الطلبات</h2>
+  <div class="container">
+    <div id="adminArea">
+      <p>جارٍ التحقق...</p>
+    </div>
+  </div>
 
-  <!-- فلترة حسب الحالة -->
-  <label>فلترة حسب الحالة:</label>
-  <select id="statusFilter">
-    <option value="">الكل</option>
-    <option value="pending">قيد التجهيز</option>
-    <option value="shipped">تم الشحن</option>
-    <option value="delivered">تم التسليم</option>
-    <option value="cancelled">ملغي</option>
-  </select>
-  
-  <button onclick="loadOrders()">🔄 تحديث</button>
+  <script type="module">
+    import { supabase } from "./supabase.js";
 
-  <h3 id="count"></h3>
+    const SECRET = "Alosh123@@@"; // غيّره بقيمة قوية قبل الإطلاق
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
 
-  <div id="orders"></div>
+    const adminArea = document.getElementById('adminArea');
 
-
-<script>
-  // اتصال Supabase
-  const supabaseClient = supabase.createClient(
-    "https://qccpddjnozehorhleegz.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjY3BkZGpub3plaG9yaGxlZWd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2MTc0NzEsImV4cCI6MjA3OTE5MzQ3MX0.WzG0u9c6wY9eTTh0olIzrPSSPoHhuQhmLTS7zPxXBGA"
-  );
-
-  async function loadOrders() {
-    const filter = document.getElementById("statusFilter").value;
-
-    let query = supabaseClient
-      .from("orders")
-      .select(`
-        *,
-        order_items (
-          quantity,
-          price,
-          products (name)
-        )
-      `)
-      .order("created_at", { ascending: false });
-
-    if (filter) {
-      query = query.eq("status", filter); // فلترة حسب الحالة
+    if(token !== SECRET){
+      adminArea.innerHTML = `<p style="color:red">رمز الوصول غير صحيح.</p>`;
+      throw new Error('Unauthorized');
     }
 
-    const { data, error } = await query;
+    // بعد التحقق: render admin UI
+    adminArea.innerHTML = `
+      <div class="admin-header">
+        <h2>إدارة المنتجات والطلبات</h2>
+        <div>
+          <button id="refresh" class="btn">تحديث</button>
+        </div>
+      </div>
 
-    if (error) {
-      console.error("Error:", error);
-      alert("حدث خطأ أثناء تحميل الطلبات");
+      <div class="kpi">
+        <div class="card"><div id="totalProducts">-</div><div>عدد المنتجات</div></div>
+        <div class="card"><div id="totalOrders">-</div><div>عدد الطلبات</div></div>
+        <div class="card"><div id="totalRevenue">-</div><div>إجمالي المبيعات (جنيه)</div></div>
+      </div>
+
+      <section style="margin-bottom:12px">
+        <h3>إضافة منتج جديد</h3>
+        <form id="addProduct" style="display:grid;gap:8px;max-width:600px">
+          <input id="title" placeholder="اسم المنتج" required>
+          <textarea id="desc" placeholder="وصف المنتج"></textarea>
+          <input id="price" type="number" placeholder="السعر (جنيه)" required>
+<label>صورة المنتج:</label>
+<input id="imageFile" type="file" accept="image/*">
+
+<!-- حقل رابط الصورة (سيتم ملؤه تلقائياً بعد الرفع) -->
+<input id="imageUrl" type="hidden">
+          <button class="btn" type="submit">إضافة</button>
+        </form>
+      </section>
+
+      <section>
+        <h3>المنتجات</h3>
+        <table class="table" id="productsTable">
+          <thead><tr><th>عنوان</th><th>سعر</th><th>أعمال</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section style="margin-top:18px">
+        <h3>الطلبات</h3>
+        <table class="table" id="ordersTable">
+          <thead><tr><th>العميل</th><th>الهاتف</th><th>الطلبات</th><th>المجموع</th><th>الحالة</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    `;
+
+    // DOM refs
+    const addProductForm = document.getElementById('addProduct');
+    const productsTable = document.querySelector('#productsTable tbody');
+    const ordersTable = document.querySelector('#ordersTable tbody');
+    const totalProducts = document.getElementById('totalProducts');
+    const totalOrders = document.getElementById('totalOrders');
+    const totalRevenue = document.getElementById('totalRevenue');
+    const refreshBtn = document.getElementById('refresh');
+
+    async function loadAdmin(){
+      // products
+      const { data: products, error: pErr } = await supabase.from('products').select('*').order('created_at',{ascending:false});
+      if(pErr){ console.error(pErr); return; }
+      productsTable.innerHTML = products.map(p => `
+        <tr data-id="${p.id}">
+          <td>${p.title}</td>
+          <td>${p.price}</td>
+          <td>
+            <button class="btn" data-del="${p.id}">حذف</button>
+            <button class="btn ghost" data-edit="${p.id}">تعديل</button>
+            <button class="btn ghost" data-stats="${p.id}">عدد الطلبات</button>
+          </td>
+        </tr>
+      `).join('');
+      totalProducts.textContent = products.length;
+
+      // orders
+      const { data: orders, error: oErr } = await supabase.from('orders').select('*').order('created_at',{ascending:false});
+      if(oErr){ console.error(oErr); return; }
+      ordersTable.innerHTML = orders.map(o => `
+        <tr>
+          <td>${o.customer_name}</td>
+          <td>${o.phone}</td>
+          <td>${(JSON.parse(o.items||'[]')).map(it=>it.title + ' x'+it.quantity).join('<br>')}</td>
+          <td>${o.total}</td>
+          <td>${o.status}</td>
+        </tr>
+      `).join('');
+      totalOrders.textContent = orders.length;
+      totalRevenue.textContent = orders.reduce((s,o)=>s + parseFloat(o.total||0), 0);
+
+      // attach delete events
+      document.querySelectorAll('[data-del]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const id = btn.getAttribute('data-del');
+          if(!confirm('هل تريد حذف المنتج؟')) return;
+          const { error } = await supabase.from('products').delete().eq('id', id);
+          if(error){ alert('حدث خطأ'); console.error(error); }
+          else loadAdmin();
+        });
+      });
+
+      // attach stats button: count orders that include product id
+      document.querySelectorAll('[data-stats]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const pid = btn.getAttribute('data-stats');
+          // query orders where items::jsonb contains product id
+          const { data: orders, error } = await supabase.rpc('count_orders_for_product', {p_product_id: pid});
+          if(error){ console.error(error); alert('خطأ في جلب الإحصائيات'); return; }
+          alert('عدد الطلبات التي اشتملت على المنتج: ' + (orders?.count || 0));
+        });
+      });
+
+    }
+
+    // add product
+    addProductForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  
+  const title = document.getElementById('title').value.trim();
+  const desc = document.getElementById('desc').value.trim();
+  const price = document.getElementById('price').value;
+  
+  // --- رفع الصورة إلى Supabase ---
+  const fileInput = document.getElementById("imageFile");
+  const file = fileInput.files[0];
+
+  let finalImageUrl = null;
+
+  if (file) {
+    const fileName = `products/${Date.now()}_${file.name}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("products-images")
+      .upload(fileName, file);
+
+    if (uploadError) {
+      console.error("❌ خطأ أثناء رفع الصورة:", uploadError);
+      alert("فشل رفع الصورة!");
       return;
     }
 
-    displayOrders(data);
+    // الحصول على رابط الصورة
+    const { data: publicUrl } = supabase.storage
+      .from("products-images")
+      .getPublicUrl(fileName);
+
+    finalImageUrl = publicUrl.publicUrl;
   }
 
-  function displayOrders(orders) {
-    const container = document.getElementById("orders");
-    container.innerHTML = "";
+  // --- إضافة المنتج داخل جدول products ---
+  const { error } = await supabase.from('products').insert([{
+    title,
+    description: desc,
+    price,
+    image_url: finalImageUrl   // ← هنا الصورة أصبحت موجودة
+  }]);
 
-    document.getElementById("count").innerText = `عدد الطلبات: ${orders.length}`;
-
-    orders.forEach(order => {
-      const card = document.createElement("div");
-      card.className = "order-card";
-
-      card.innerHTML = `
-        <h3>رقم الطلب: ${order.id}</h3>
-        <p>👤 الاسم: ${order.customer_name}</p>
-        <p>📞 الهاتف: ${order.phone}</p>
-        <p>📍 العنوان: ${order.address}</p>
-        <p>🕒 التاريخ: ${new Date(order.created_at).toLocaleString()}</p>
-        <p>📌 الحالة: <strong>${order.status}</strong></p>
-        <hr>
-        <h4>🛒 المنتجات:</h4>
-        ${
-          order.order_items.map(item => `
-            <p>
-              - ${item.products?.name || "منتج محذوف"}  
-              | الكمية: ${item.quantity}  
-              | السعر: ${item.price} جنيه
-            </p>
-          `).join("")
-        }
-      `;
-
-      container.appendChild(card);
-    });
+  if(error){
+    console.error(error);
+    alert("حدث خطأ أثناء إضافة المنتج");
+    return;
   }
 
-  loadOrders();
-</script>
+  addProductForm.reset();
+  loadAdmin();
+  alert("✔️ تم إضافة المنتج بنجاح");
+});
 
+
+    refreshBtn.addEventListener('click', loadAdmin);
+
+    // initial
+    loadAdmin();
+
+  </script>
 </body>
 </html>
