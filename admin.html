@@ -119,7 +119,7 @@ async function loadAdmin() {
 
   totalProducts.textContent = products.length;
 
-  // زرار الحذف
+  // زر الحذف
   document.querySelectorAll("[data-del]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.del;
@@ -146,11 +146,11 @@ async function loadAdmin() {
     <tr>
       <td>${o.customer_name}</td>
       <td>${o.phone}</td>
-      <td>${
-        (o.items || [])
+      <td>
+        ${(o.items || [])
           .map((i) => `${i.title} × ${i.quantity}`)
-          .join("<br>")
-      }</td>
+          .join("<br>")}
+      </td>
       <td>${o.total}</td>
       <td>${o.status}</td>
     </tr>
@@ -165,6 +165,7 @@ async function loadAdmin() {
   );
 }
 
+// زر التحديث
 refreshBtn.addEventListener("click", loadAdmin);
 
 // =============================
