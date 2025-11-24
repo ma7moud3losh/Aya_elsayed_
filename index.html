@@ -140,7 +140,7 @@ window.removeFromCart = function (index) {
       const total = items.reduce((s,i)=>s+i.price*(i.quantity||1),0);
       // write order to supabase
       const { data, error } = await supabase.from('orders').insert([{
-        customer_name: name, phone, address, items: JSON.stringify(items), total
+        customer_name: name, phone, address, items: items, total
       }]);
       if(error){ console.error(error); checkoutMsg.textContent = "حدث خطأ أثناء إرسال الطلب"; return; }
       // clear cart
