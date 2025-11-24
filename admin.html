@@ -6,6 +6,7 @@
   <title>لوحة الأدمن — Aya Elsayed</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <header class="header">
     <h1>لوحة الأدمن — Aya Elsayed</h1>
@@ -13,142 +14,157 @@
   </header>
 
   <div class="container">
-    <div id="adminArea">
-      <p>جارٍ التحقق...</p>
-    </div>
+    <div id="adminArea"><p>جارٍ التحقق...</p></div>
   </div>
 
-  <script type="module">
-    import { supabase } from "./supabase.js";
+<script type="module">
+import { supabase } from "./supabase.js";
 
-    const SECRET = "Alosh123@@@"; // غيّره بقيمة قوية قبل الإطلاق
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token');
+const SECRET = "Alosh123@@@";  // يجب تغييره لقيمة قوية
+const params = new URLSearchParams(location.search);
+const token = params.get("token");
+const adminArea = document.getElementById("adminArea");
 
-    const adminArea = document.getElementById('adminArea');
+// =============================
+// التحقق من الدخول
+// =============================
+if (token !== SECRET) {
+  adminArea.innerHTML = `<p style="color:red">رمز الدخول غير صحيح ❌</p>`;
+  throw new Error("Unauthorized");
+}
 
-    if(token !== SECRET){
-      adminArea.innerHTML = `<p style="color:red">رمز الوصول غير صحيح.</p>`;
-      throw new Error('Unauthorized');
-    }
+// عند نجاح التحقق نعرض واجهة الأدمن
+adminArea.innerHTML = `
+  <div class="admin-header">
+    <h2>إدارة المنتجات والطلبات</h2>
+    <button id="refresh" class="btn">تحديث</button>
+  </div>
 
-    // بعد التحقق: render admin UI
-    adminArea.innerHTML = `
-      <div class="admin-header">
-        <h2>إدارة المنتجات والطلبات</h2>
-        <div>
-          <button id="refresh" class="btn">تحديث</button>
-        </div>
-      </div>
+  <div class="kpi">
+    <div class="card"><div id="totalProducts">-</div><div>عدد المنتجات</div></div>
+    <div class="card"><div id="totalOrders">-</div><div>عدد الطلبات</div></div>
+    <div class="card"><div id="totalRevenue">-</div><div>إجمالي المبيعات (جنيه)</div></div>
+  </div>
 
-      <div class="kpi">
-        <div class="card"><div id="totalProducts">-</div><div>عدد المنتجات</div></div>
-        <div class="card"><div id="totalOrders">-</div><div>عدد الطلبات</div></div>
-        <div class="card"><div id="totalRevenue">-</div><div>إجمالي المبيعات (جنيه)</div></div>
-      </div>
+  <section style="margin-bottom:12px">
+    <h3>إضافة منتج جديد</h3>
+    <form id="addProduct" style="display:grid;gap:8px;max-width:600px">
+      <input id="title" placeholder="اسم المنتج" required>
+      <textarea id="desc" placeholder="وصف المنتج"></textarea>
+      <input id="price" type="number" placeholder="السعر (جنيه)" required>
+      
+      <label>صورة المنتج:</label>
+      <input id="imageFile" type="file" accept="image/*">
 
-      <section style="margin-bottom:12px">
-        <h3>إضافة منتج جديد</h3>
-        <form id="addProduct" style="display:grid;gap:8px;max-width:600px">
-          <input id="title" placeholder="اسم المنتج" required>
-          <textarea id="desc" placeholder="وصف المنتج"></textarea>
-          <input id="price" type="number" placeholder="السعر (جنيه)" required>
-<label>صورة المنتج:</label>
-<input id="imageFile" type="file" accept="image/*">
+      <button class="btn" type="submit">إضافة</button>
+    </form>
+  </section>
 
-<!-- حقل رابط الصورة (سيتم ملؤه تلقائياً بعد الرفع) -->
-<input id="imageUrl" type="hidden">
-          <button class="btn" type="submit">إضافة</button>
-        </form>
-      </section>
+  <section>
+    <h3>المنتجات</h3>
+    <table class="table" id="productsTable">
+      <thead><tr><th>المنتج</th><th>السعر</th><th>إدارة</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
 
-      <section>
-        <h3>المنتجات</h3>
-        <table class="table" id="productsTable">
-          <thead><tr><th>عنوان</th><th>سعر</th><th>أعمال</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </section>
+  <section style="margin-top:18px">
+    <h3>الطلبات</h3>
+    <table class="table" id="ordersTable">
+      <thead><tr><th>العميل</th><th>الهاتف</th><th>الطلب</th><th>المجموع</th><th>الحالة</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+`;
 
-      <section style="margin-top:18px">
-        <h3>الطلبات</h3>
-        <table class="table" id="ordersTable">
-          <thead><tr><th>العميل</th><th>الهاتف</th><th>الطلبات</th><th>المجموع</th><th>الحالة</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </section>
-    `;
+// =============================
+// عناصر DOM
+// =============================
+const addProductForm = document.getElementById("addProduct");
+const productsTable = document.querySelector("#productsTable tbody");
+const ordersTable = document.querySelector("#ordersTable tbody");
+const totalProducts = document.getElementById("totalProducts");
+const totalOrders = document.getElementById("totalOrders");
+const totalRevenue = document.getElementById("totalRevenue");
+const refreshBtn = document.getElementById("refresh");
 
-    // DOM refs
-    const addProductForm = document.getElementById('addProduct');
-    const productsTable = document.querySelector('#productsTable tbody');
-    const ordersTable = document.querySelector('#ordersTable tbody');
-    const totalProducts = document.getElementById('totalProducts');
-    const totalOrders = document.getElementById('totalOrders');
-    const totalRevenue = document.getElementById('totalRevenue');
-    const refreshBtn = document.getElementById('refresh');
+// =============================
+// تحميل المنتجات + الطلبات
+// =============================
+async function loadAdmin() {
+  // تحميل المنتجات
+  const { data: products, error: pErr } = await supabase
+    .from("products")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-    async function loadAdmin(){
-      // products
-      const { data: products, error: pErr } = await supabase.from('products').select('*').order('created_at',{ascending:false});
-      if(pErr){ console.error(pErr); return; }
-      productsTable.innerHTML = products.map(p => `
-        <tr data-id="${p.id}">
-          <td>${p.title}</td>
-          <td>${p.price}</td>
-          <td>
-            <button class="btn" data-del="${p.id}">حذف</button>
-            <button class="btn ghost" data-edit="${p.id}">تعديل</button>
-            <button class="btn ghost" data-stats="${p.id}">عدد الطلبات</button>
-          </td>
-        </tr>
-      `).join('');
-      totalProducts.textContent = products.length;
+  if (pErr) return console.error(pErr);
 
-      // orders
-      const { data: orders, error: oErr } = await supabase.from('orders').select('*').order('created_at',{ascending:false});
-      if(oErr){ console.error(oErr); return; }
-      ordersTable.innerHTML = orders.map(o => `
-        <tr>
-          <td>${o.customer_name}</td>
-          <td>${o.phone}</td>
-          <td>${(JSON.parse(o.items||'[]')).map(it=>it.title + ' x'+it.quantity).join('<br>')}</td>
-          <td>${o.total}</td>
-          <td>${o.status}</td>
-        </tr>
-      `).join('');
-      totalOrders.textContent = orders.length;
-      totalRevenue.textContent = orders.reduce((s,o)=>s + parseFloat(o.total||0), 0);
+  productsTable.innerHTML = products
+    .map(
+      (p) => `
+    <tr>
+      <td>${p.title}</td>
+      <td>${p.price}</td>
+      <td>
+        <button class="btn" data-del="${p.id}">حذف</button>
+      </td>
+    </tr>
+  `
+    )
+    .join("");
 
-      // attach delete events
-      document.querySelectorAll('[data-del]').forEach(btn=>{
-        btn.addEventListener('click', async ()=>{
-          const id = btn.getAttribute('data-del');
-          if(!confirm('هل تريد حذف المنتج؟')) return;
-          const { error } = await supabase.from('products').delete().eq('id', id);
-          if(error){ alert('حدث خطأ'); console.error(error); }
-          else loadAdmin();
-        });
-      });
+  totalProducts.textContent = products.length;
 
-      // attach stats button: count orders that include product id
-      document.querySelectorAll('[data-stats]').forEach(btn=>{
-        btn.addEventListener('click', async ()=>{
-          const pid = btn.getAttribute('data-stats');
-          // query orders where items::jsonb contains product id
-          const { data: orders, error } = await supabase.rpc('count_orders_for_product', {p_product_id: pid});
-          if(error){ console.error(error); alert('خطأ في جلب الإحصائيات'); return; }
-          alert('عدد الطلبات التي اشتملت على المنتج: ' + (orders?.count || 0));
-        });
-      });
+  // ربط زرار الحذف
+  document.querySelectorAll("[data-del]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.del;
+      if (!confirm("هل تريد حذف المنتج؟")) return;
 
-    }
+      await supabase.from("products").delete().eq("id", id);
+      loadAdmin();
+    });
+  });
 
-    // add product
-    addProductForm.addEventListener("submit", async (e) => {
+  // تحميل الطلبات
+  const { data: orders, error: oErr } = await supabase
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (oErr) return console.error(oErr);
+
+  ordersTable.innerHTML = orders
+    .map(
+      (o) => `
+    <tr>
+      <td>${o.customer_name}</td>
+      <td>${o.phone}</td>
+      <td>${JSON.parse(o.items || "[]")
+        .map((i) => `${i.title} × ${i.quantity}`)
+        .join("<br>")}</td>
+      <td>${o.total}</td>
+      <td>${o.status}</td>
+    </tr>
+  `
+    )
+    .join("");
+
+  totalOrders.textContent = orders.length;
+  totalRevenue.textContent = orders.reduce(
+    (sum, o) => sum + Number(o.total || 0),
+    0
+  );
+}
+
+refreshBtn.addEventListener("click", loadAdmin);
+
+// =============================
+// إضافة منتج جديد
+// =============================
+addProductForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-
-  console.log("▶️ بدء إضافة المنتج...");
 
   const title = document.getElementById("title").value.trim();
   const desc = document.getElementById("desc").value.trim();
@@ -157,19 +173,16 @@
 
   let finalImageUrl = null;
 
-  // ---- رفع الصورة ----
   if (file) {
-    console.log("📤 جاري رفع الصورة:", file.name);
-
     const fileName = `products/${Date.now()}_${file.name}`;
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("products-images")
       .upload(fileName, file);
 
     if (uploadError) {
-      console.error("❌ خطأ رفع الصورة:", uploadError);
-      alert("فشل رفع الصورة ⚠️");
+      alert("فشل رفع الصورة");
+      console.error(uploadError);
       return;
     }
 
@@ -178,16 +191,9 @@
       .getPublicUrl(fileName);
 
     finalImageUrl = urlData.publicUrl;
-
-    console.log("✔️ رابط الصورة:", finalImageUrl);
-  } else {
-    console.warn("⚠️ لم يتم اختيار صورة");
   }
 
-  // ---- إضافة المنتج ----
-  console.log("🟢 جاري إضافة المنتج إلى قاعدة البيانات...");
-
-  const { data, error } = await supabase.from("products").insert([
+  const { error } = await supabase.from("products").insert([
     {
       title,
       description: desc,
@@ -197,43 +203,18 @@
   ]);
 
   if (error) {
-    console.error("❌ خطأ عند إدخال المنتج:", error);
-    alert("فشل إضافة المنتج ⚠️ — انظر Console لمعرفة السبب");
-    return;
-  }
-
-  console.log("✔️ تم إضافة المنتج:", data);
-
-  alert("✨ تم إضافة المنتج بنجاح!");
-  addProductForm.reset();
-  loadAdmin();
-});
-
-  // --- إضافة المنتج داخل جدول products ---
-  const { error } = await supabase.from('products').insert([{
-    title,
-    description: desc,
-    price,
-    image_url: finalImageUrl   // ← هنا الصورة أصبحت موجودة
-  }]);
-
-  if(error){
+    alert("فشل إضافة المنتج");
     console.error(error);
-    alert("حدث خطأ أثناء إضافة المنتج");
     return;
   }
 
+  alert("✔️ تم إضافة المنتج بنجاح");
   addProductForm.reset();
   loadAdmin();
-  alert("✔️ تم إضافة المنتج بنجاح");
 });
 
-
-    refreshBtn.addEventListener('click', loadAdmin);
-
-    // initial
-    loadAdmin();
-
-  </script>
+// تحميل أولي
+loadAdmin();
+</script>
 </body>
 </html>
