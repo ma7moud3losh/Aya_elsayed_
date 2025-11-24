@@ -218,7 +218,7 @@ async function loadAdmin() {
       <td>${p.title}</td>
       <td>${p.price}</td>
       <td>
-        <button class="btn" data-del-product="${p.id}">حذف</button>
+<button class="delete-order" data-id="${o.id}">❌ حذف</button>
       </td>
     </tr>`
     )
@@ -317,6 +317,24 @@ addProductForm.addEventListener("submit", async (e) => {
   addProductForm.reset();
   loadAdmin();
 });
+document.querySelectorAll(".delete-order").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const id = btn.dataset.id;
+
+    if (!confirm("هل أنت متأكد من حذف الطلب؟")) return;
+
+    const { error } = await supabase.from("orders").delete().eq("id", id);
+
+    if (error) {
+      alert("فشل حذف الطلب");
+      console.error(error);
+    } else {
+      alert("✔ تم حذف الطلب");
+      loadAdmin(); 
+    }
+  });
+});
+
 
 </script>
 
