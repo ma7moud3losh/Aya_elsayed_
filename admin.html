@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css">
 
   <style>
-/* ===== صفحة الأدمن - تنسيق عام ===== */
 body {
   font-family: "Tajawal", sans-serif;
   background: #fff7fb;
@@ -62,7 +61,7 @@ body {
   text-align: center;
 }
 
-/* ===== جدول الطلبات (ستايل أنثوي) ===== */
+/* جدول الطلبات */
 .orders-table {
   width: 100%;
   border-collapse: collapse;
@@ -105,7 +104,6 @@ body {
   color: white;
   border-radius: 6px;
   cursor: pointer;
-  transition: 0.2s;
 }
 
 .delete-btn:hover {
@@ -134,17 +132,11 @@ const params = new URLSearchParams(location.search);
 const token = params.get("token");
 const adminArea = document.getElementById("adminArea");
 
-// =============================
-// التحقق من الدخول
-// =============================
 if (token !== SECRET) {
   adminArea.innerHTML = `<p style="color:red">رمز الدخول غير صحيح ❌</p>`;
   throw new Error("Unauthorized");
 }
 
-// =============================
-// واجهة الأدمن
-// =============================
 adminArea.innerHTML = `
   <div class="admin-header">
     <h2>إدارة المنتجات والطلبات</h2>
@@ -192,17 +184,11 @@ adminArea.innerHTML = `
   </section>
 `;
 
-// =============================
-// عناصر DOM
-// =============================
 const addProductForm = document.getElementById("addProduct");
 const productsTable = document.querySelector("#productsTable tbody");
 const ordersTable = document.querySelector("#ordersTable tbody");
 const refreshBtn = document.getElementById("refresh");
 
-// =============================
-// تحميل المنتجات + الطلبات
-// =============================
 async function loadAdmin() {
 
   /* تحميل المنتجات */
@@ -221,8 +207,7 @@ async function loadAdmin() {
         <button class="btn" data-del-product="${p.id}">حذف</button>
       </td>
     </tr>`
-    )
-    .join("");
+    ).join("");
 
   document.querySelectorAll("[data-del-product]").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -260,10 +245,9 @@ async function loadAdmin() {
     <button class="delete-btn" data-del-order="${o.id}">حذف</button>
   </td>
 </tr>`
-    )
-    .join("");
+    ).join("");
 
-  // تغيير الحالة
+  /* تغيير الحالة */
   document.querySelectorAll(".status-select").forEach((select) => {
     select.addEventListener("change", async () => {
       const id = select.dataset.id;
@@ -272,30 +256,23 @@ async function loadAdmin() {
     });
   });
 
-document.querySelectorAll("[data-del-order]").forEach((btn) => {
-  btn.addEventListener("click", async () => {
-    const id = btn.dataset.delOrder;
+  /* حذف الطلب */
+  document.querySelectorAll(".delete-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.delOrder;
 
-    if (!confirm("حذف الطلب؟")) return;
+      if (!confirm("حذف الطلب؟")) return;
 
-    const { error } = await supabase
-      .from("orders")
-      .delete()
-      .eq("id", id);
+      await supabase.from("orders").delete().eq("id", id);
 
-    if (error) {
-      alert("فشل حذف الطلب");
-      console.error(error);
-    } else {
-      alert("✔ تم حذف الطلب");
       loadAdmin();
-    }
+    });
   });
-});
 
 }
 
 refreshBtn.addEventListener("click", loadAdmin);
+
 loadAdmin();
 
 /* إضافة منتج */
@@ -329,7 +306,6 @@ addProductForm.addEventListener("submit", async (e) => {
   addProductForm.reset();
   loadAdmin();
 });
-
 </script>
 
 </body>
