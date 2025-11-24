@@ -71,12 +71,23 @@ adminArea.innerHTML = `
   </section>
 
   <section style="margin-top:18px">
-    <h3>الطلبات</h3>
-    <table class="table" id="ordersTable">
-      <thead><tr><th>العميل</th><th>الهاتف</th><th>الطلب</th><th>المجموع</th><th>الحالة</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </section>
+  <h3>الطلبات</h3>
+
+  <table class="table orders-table" id="ordersTable">
+    <thead>
+      <tr>
+        <th>العميل</th>
+        <th>الهاتف</th>
+        <th>الطلب</th>
+        <th>المجموع</th>
+        <th>الحالة</th>
+        <th>إدارة</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
 `;
 
 // =============================
@@ -118,7 +129,7 @@ async function loadAdmin() {
     .join("");
 
   totalProducts.textContent = products.length;
-  
+
   // تغيير حالة الطلب
 setTimeout(() => {
   document.querySelectorAll(".statusSelect").forEach((select) => {
@@ -156,40 +167,93 @@ setTimeout(() => {
   // =============================
   // تحميل الطلبات
   // =============================
-  const { data: orders, error: oErr } = await supabase
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false });
+  // =============================
+// تحميل الطلبات المنسّقة
+// =============================
+const { data: orders, error: oErr } = await supabase
+  .from("orders")
+  .select("*")
+  .order("created_at", { ascending: false });
 
-  if (oErr) return console.error(oErr);
+if (oErr) return console.error(oErr);
 
-  ordersTable.innerHTML = orders
+ordersTable.innerHTML = orders
   .map(
     (o) => `
-  <tr>
-    <td>${o.customer_name}</td>
-    <td>${o.phone}</td>
-
-    <td>
-      ${(o.items || [])
+<tr>
+  <td>${o.customer_name}</td>
+  <td>${o.phone}</td>
+  <td>
+    ${
+      (o.items || [])
         .map((i) => `${i.title} × ${i.quantity}`)
-        .join("<br>")}
-    </td>
+        .join("<br>")
+    }
+  </td>
 
-    <td>${o.total}</td>
+  <td>${o.total} جنيه</td>
 
-    <td>
-      <select class="statusSelect" data-id="${o.id}">
-        <option value="new" ${o.status === "new" ? "selected" : ""}>جديد</option>
-        <option value="processing" ${o.status === "processing" ? "selected" : ""}>قيد التجهيز</option>
-        <option value="done" ${o.status === "done" ? "selected" : ""}>تم التسليم</option>
-        <option value="canceled" ${o.status === "canceled" ? "selected" : ""}>ملغي</option>
-      </select>
-    </td>
-  </tr>
+  <td>
+    <select class="status-select" data-id="${o.id}">
+      <option value="new" ${o.status === "new" ? "selected" : ""}>جديد</option>
+      <option value="processing" ${
+        o.status === "processing" ? "selected" : ""
+      }>جاري التجهيز</option>
+      <option value="done" ${o.status === "done" ? "selected" : ""}>تم التسليم</option>
+    </select>
+  </td>
+
+  <td>
+    <button class="delete-btn" data-del="${o.id}">حذف</button>
+  </td>
+</tr>
 `
   )
   .join("");
+
+// =============================
+// تغيير حالة الطلب
+// =============================
+document.querySelectorAll(".status-select").forEach((sel) => {
+  sel.addEventListener("change", async () => {
+    const id = sel.dataset.id;
+    const value = sel.value;
+
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: value })
+      .eq("id", id);
+
+    if (error) {
+      alert("فشل تحديث الحالة");
+      console.error(error);
+    } else {
+      alert("✔ تم تحديث الحالة");
+    }
+  });
+});
+
+// =============================
+// حذف الطلب
+// =============================
+document.querySelectorAll("[data-del]").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const id = btn.dataset.del;
+
+    if (!confirm("هل أنت متأكد من حذف هذا الطلب؟")) return;
+
+    const { error } = await supabase.from("orders").delete().eq("id", id);
+
+    if (error) {
+      alert("فشل حذف الطلب");
+      console.error(error);
+    } else {
+      alert("✔ تم حذف الطلب");
+      loadAdmin(); // تحديث القائمة
+    }
+  });
+});
+
 
   totalOrders.textContent = orders.length;
   totalRevenue.textContent = orders.reduce(

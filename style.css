@@ -268,3 +268,48 @@ form button {
   width: 100%;
   margin-top: 5px;
 }
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.orders-table th {
+  background: #ffb4cf;
+  color: white;
+  padding: 12px;
+  font-size: 15px;
+}
+
+.orders-table td {
+  padding: 12px;
+  border-bottom: 1px solid #ffe2ee;
+}
+
+.orders-table tr:hover {
+  background: #fff5fa;
+}
+
+.status-select {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+.delete-btn {
+  background: #ff5f7e;
+  border: none;
+  padding: 6px 10px;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background: #e04565;
+}
