@@ -29,7 +29,9 @@
       card.className = "product-card";
 
       card.innerHTML = `
-        <img src="${product.image_url}" alt="${product.title}">
+        <img src="${product.image_url || 'https://via.placeholder.com/300x300?text=No+Image'}" 
+     alt="${product.title}">
+
         <h3>${product.title}</h3>
         <p>${product.description || ""}</p>
         <span>${product.price} جنيه</span>
