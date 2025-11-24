@@ -145,20 +145,22 @@
     }
 
     // add product
-    addProductForm.addEventListener('submit', async (e)=>{
+    addProductForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  
-  const title = document.getElementById('title').value.trim();
-  const desc = document.getElementById('desc').value.trim();
-  const price = document.getElementById('price').value;
-  
-  // --- رفع الصورة إلى Supabase ---
-  const fileInput = document.getElementById("imageFile");
-  const file = fileInput.files[0];
+
+  console.log("▶️ بدء إضافة المنتج...");
+
+  const title = document.getElementById("title").value.trim();
+  const desc = document.getElementById("desc").value.trim();
+  const price = document.getElementById("price").value;
+  const file = document.getElementById("imageFile").files[0];
 
   let finalImageUrl = null;
 
+  // ---- رفع الصورة ----
   if (file) {
+    console.log("📤 جاري رفع الصورة:", file.name);
+
     const fileName = `products/${Date.now()}_${file.name}`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -166,18 +168,46 @@
       .upload(fileName, file);
 
     if (uploadError) {
-      console.error("❌ خطأ أثناء رفع الصورة:", uploadError);
-      alert("فشل رفع الصورة!");
+      console.error("❌ خطأ رفع الصورة:", uploadError);
+      alert("فشل رفع الصورة ⚠️");
       return;
     }
 
-    // الحصول على رابط الصورة
-    const { data: publicUrl } = supabase.storage
+    const { data: urlData } = supabase.storage
       .from("products-images")
       .getPublicUrl(fileName);
 
-    finalImageUrl = publicUrl.publicUrl;
+    finalImageUrl = urlData.publicUrl;
+
+    console.log("✔️ رابط الصورة:", finalImageUrl);
+  } else {
+    console.warn("⚠️ لم يتم اختيار صورة");
   }
+
+  // ---- إضافة المنتج ----
+  console.log("🟢 جاري إضافة المنتج إلى قاعدة البيانات...");
+
+  const { data, error } = await supabase.from("products").insert([
+    {
+      title,
+      description: desc,
+      price,
+      image_url: finalImageUrl,
+    },
+  ]);
+
+  if (error) {
+    console.error("❌ خطأ عند إدخال المنتج:", error);
+    alert("فشل إضافة المنتج ⚠️ — انظر Console لمعرفة السبب");
+    return;
+  }
+
+  console.log("✔️ تم إضافة المنتج:", data);
+
+  alert("✨ تم إضافة المنتج بنجاح!");
+  addProductForm.reset();
+  loadAdmin();
+});
 
   // --- إضافة المنتج داخل جدول products ---
   const { error } = await supabase.from('products').insert([{
