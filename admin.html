@@ -53,7 +53,11 @@
           <input id="title" placeholder="اسم المنتج" required>
           <textarea id="desc" placeholder="وصف المنتج"></textarea>
           <input id="price" type="number" placeholder="السعر (جنيه)" required>
-          <input id="imageUrl" placeholder="رابط الصورة (أو ارفع في Storage)">
+<label>صورة المنتج:</label>
+<input id="imageFile" type="file" accept="image/*">
+
+<!-- حقل رابط الصورة (سيتم ملؤه تلقائياً بعد الرفع) -->
+<input id="imageUrl" type="hidden">
           <button class="btn" type="submit">إضافة</button>
         </form>
       </section>
@@ -162,4 +166,3 @@
   </script>
 </body>
 </html>
-

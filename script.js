@@ -1,41 +1,70 @@
-  import { db } from './firebase.js';
-  import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { db, storage } from './firebase.js';
+  import { supabase } from "./supabase.js";
 
   const productsContainer = document.getElementById("products");
 
-  // تحميل المنتجات من Firestore
+  // ================================
+  //  تحميل المنتجات من Supabase
+  // ================================
   async function loadProducts() {
-    const snapshot = await getDocs(collection(db, "products"));
-    snapshot.forEach(doc => {
-      const product = doc.data();
-      const productCard = document.createElement("div");
-      productCard.className = "product-card";
-      productCard.innerHTML = `
-        <img src="${product.image}" alt="${product.name}">
-        <h3>${product.name}</h3>
-        <p>${product.desc || ""}</p>
+    const { data: products, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("❌ خطأ أثناء تحميل المنتجات:", error);
+      productsContainer.innerHTML = "<p>حدث خطأ أثناء تحميل المنتجات</p>";
+      return;
+    }
+
+    if (!products || products.length === 0) {
+      productsContainer.innerHTML = "<p>لا توجد منتجات بعد</p>";
+      return;
+    }
+
+    // عرض المنتجات
+    productsContainer.innerHTML = "";
+    products.forEach(product => {
+      const card = document.createElement("div");
+      card.className = "product-card";
+
+      card.innerHTML = `
+        <img src="${product.image_url}" alt="${product.title}">
+        <h3>${product.title}</h3>
+        <p>${product.description || ""}</p>
         <span>${product.price} جنيه</span>
-        <button onclick="addToCart('${product.name}', '${product.price}', '${product.image}')">🛒 أضف إلى السلة</button>
+        <button onclick="addToCart('${product.title}', '${product.price}', '${product.image_url}')">
+          🛒 أضف إلى السلة
+        </button>
       `;
-      productsContainer.appendChild(productCard);
+
+      productsContainer.appendChild(card);
     });
   }
 
   loadProducts();
 
-  // ✅ دالة إضافة منتج للسلة بشكل منظم
+  // ================================
+  //  دالة إضافة منتج للسلة
+  // ================================
   window.addToCart = function (name, price, image) {
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-    // شوف لو المنتج موجود بالفعل
     const existing = cart.find(item => item.name === name);
+
     if (existing) {
       existing.quantity += 1;
     } else {
-      cart.push({ name, price, image, quantity: 1 });
+      cart.push({
+        name,
+        price: Number(price),
+        image,
+        quantity: 1
+      });
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
-    alert("✅ تم إضافة المنتج إلى السلة بنجاح!");
+
+    alert("✅ تم إضافة المنتج إلى السلة!");
   };
+
