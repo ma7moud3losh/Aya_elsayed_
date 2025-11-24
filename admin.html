@@ -20,7 +20,7 @@
 <script type="module">
 import { supabase } from "./supabase.js";
 
-const SECRET = "Alosh123@@@";  // يجب تغييره لقيمة قوية
+const SECRET = "Alosh123@@@";
 const params = new URLSearchParams(location.search);
 const token = params.get("token");
 const adminArea = document.getElementById("adminArea");
@@ -33,7 +33,9 @@ if (token !== SECRET) {
   throw new Error("Unauthorized");
 }
 
-// عند نجاح التحقق نعرض واجهة الأدمن
+// =============================
+// واجهة الأدمن
+// =============================
 adminArea.innerHTML = `
   <div class="admin-header">
     <h2>إدارة المنتجات والطلبات</h2>
@@ -92,6 +94,7 @@ const refreshBtn = document.getElementById("refresh");
 // تحميل المنتجات + الطلبات
 // =============================
 async function loadAdmin() {
+
   // تحميل المنتجات
   const { data: products, error: pErr } = await supabase
     .from("products")
@@ -116,7 +119,7 @@ async function loadAdmin() {
 
   totalProducts.textContent = products.length;
 
-  // ربط زرار الحذف
+  // زرار الحذف
   document.querySelectorAll("[data-del]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.del;
@@ -127,7 +130,9 @@ async function loadAdmin() {
     });
   });
 
+  // =============================
   // تحميل الطلبات
+  // =============================
   const { data: orders, error: oErr } = await supabase
     .from("orders")
     .select("*")
@@ -141,9 +146,11 @@ async function loadAdmin() {
     <tr>
       <td>${o.customer_name}</td>
       <td>${o.phone}</td>
-      <td>${JSON.parse(o.items || "[]")
-        .map((i) => `${i.title} × ${i.quantity}`)
-        .join("<br>")}</td>
+      <td>${
+        (o.items || [])
+          .map((i) => `${i.title} × ${i.quantity}`)
+          .join("<br>")
+      }</td>
       <td>${o.total}</td>
       <td>${o.status}</td>
     </tr>
@@ -161,7 +168,7 @@ async function loadAdmin() {
 refreshBtn.addEventListener("click", loadAdmin);
 
 // =============================
-// إضافة منتج جديد
+// إضافة منتج
 // =============================
 addProductForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -173,6 +180,7 @@ addProductForm.addEventListener("submit", async (e) => {
 
   let finalImageUrl = null;
 
+  // رفع صورة المنتج
   if (file) {
     const fileName = `products/${Date.now()}_${file.name}`;
 
@@ -193,6 +201,7 @@ addProductForm.addEventListener("submit", async (e) => {
     finalImageUrl = urlData.publicUrl;
   }
 
+  // إدخال المنتج
   const { error } = await supabase.from("products").insert([
     {
       title,
@@ -216,5 +225,6 @@ addProductForm.addEventListener("submit", async (e) => {
 // تحميل أولي
 loadAdmin();
 </script>
+
 </body>
 </html>
