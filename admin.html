@@ -272,15 +272,27 @@ async function loadAdmin() {
     });
   });
 
-  // حذف الطلب
-  document.querySelectorAll("[data-del-order]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.delOrder;
-      if (!confirm("حذف الطلب؟")) return;
-      await supabase.from("orders").delete().eq("id", id);
+document.querySelectorAll("[data-del-order]").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const id = btn.dataset.delOrder;
+
+    if (!confirm("حذف الطلب؟")) return;
+
+    const { error } = await supabase
+      .from("orders")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert("فشل حذف الطلب");
+      console.error(error);
+    } else {
+      alert("✔ تم حذف الطلب");
       loadAdmin();
-    });
+    }
   });
+});
+
 }
 
 refreshBtn.addEventListener("click", loadAdmin);
